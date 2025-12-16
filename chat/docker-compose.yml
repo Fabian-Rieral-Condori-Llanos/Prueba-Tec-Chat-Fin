@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: chat_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: chatdb
+      POSTGRES_USER: chatuser
+      POSTGRES_PASSWORD: devpassword123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - chat-network
+
+  mongodb:
+    image: mongo:7
+    container_name: chat_mongo
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: chat-messages
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    networks:
+      - chat-network
+
+volumes:
+  pgdata:
+  mongodata:
+
+networks:
+  chat-network:
+    driver: bridge

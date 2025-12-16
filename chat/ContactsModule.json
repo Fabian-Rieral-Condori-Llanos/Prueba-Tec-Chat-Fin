@@ -1,0 +1,505 @@
+{
+  "info": {
+    "name": "Messaging App - Contacts Module",
+    "description": "Collection for testing the Contacts module",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Setup - Create Test Users",
+      "item": [
+        {
+          "name": "Register User 1 (Alice)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"user1_accessToken\", jsonData.accessToken);",
+                  "pm.environment.set(\"user1_id\", jsonData.userId);",
+                  "pm.environment.set(\"user1_username\", jsonData.username);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"password123\",\n  \"phoneNumber\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register User 2 (Bob)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"user2_accessToken\", jsonData.accessToken);",
+                  "pm.environment.set(\"user2_id\", jsonData.userId);",
+                  "pm.environment.set(\"user2_username\", jsonData.username);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"bob\",\n  \"email\": \"bob@example.com\",\n  \"password\": \"password123\",\n  \"phoneNumber\": \"+0987654321\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register User 3 (Charlie)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"user3_accessToken\", jsonData.accessToken);",
+                  "pm.environment.set(\"user3_id\", jsonData.userId);",
+                  "pm.environment.set(\"user3_username\", jsonData.username);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"charlie\",\n  \"email\": \"charlie@example.com\",\n  \"password\": \"password123\",\n  \"phoneNumber\": \"+1122334455\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contacts - Add",
+      "item": [
+        {
+          "name": "Add Contact by ID (Alice adds Bob)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"contact1_id\", jsonData.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contactUserId\": {{user2_id}},\n  \"nickname\": \"Bobby\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts"]
+            }
+          }
+        },
+        {
+          "name": "Add Contact by Username (Alice adds Charlie)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"contact2_id\", jsonData.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"charlie\",\n  \"nickname\": \"Chuck\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/add-by-username",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "add-by-username"]
+            }
+          }
+        },
+        {
+          "name": "Add Contact by Email (Bob adds Alice)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user2_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"alice@example.com\",\n  \"nickname\": \"Allie\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/add-by-username",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "add-by-username"]
+            }
+          }
+        },
+        {
+          "name": "Try to Add Self as Contact (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contactUserId\": {{user1_id}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts"]
+            }
+          }
+        },
+        {
+          "name": "Try to Add Duplicate Contact (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contactUserId\": {{user2_id}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contacts - Get",
+      "item": [
+        {
+          "name": "Get All Contacts (Alice)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts"]
+            }
+          }
+        },
+        {
+          "name": "Get Specific Contact",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/{{contact1_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "{{contact1_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Blocked Contacts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/blocked",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "blocked"]
+            }
+          }
+        },
+        {
+          "name": "Get Favorite Contacts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/favorites",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "favorites"]
+            }
+          }
+        },
+        {
+          "name": "Search Contacts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/search?q=bob",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "bob"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Check if Users are Contacts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/check/{{user2_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "check", "{{user2_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contacts - Update",
+      "item": [
+        {
+          "name": "Update Nickname",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/{{contact1_id}}/nickname?nickname=Robert",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "{{contact1_id}}", "nickname"],
+              "query": [
+                {
+                  "key": "nickname",
+                  "value": "Robert"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark as Favorite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/{{contact1_id}}/favorite",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "{{contact1_id}}", "favorite"]
+            }
+          }
+        },
+        {
+          "name": "Unmark as Favorite",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/{{contact1_id}}/favorite",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "{{contact1_id}}", "favorite"]
+            }
+          }
+        },
+        {
+          "name": "Block Contact",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/{{contact2_id}}/block",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "{{contact2_id}}", "block"]
+            }
+          }
+        },
+        {
+          "name": "Unblock Contact",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/{{contact2_id}}/unblock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "{{contact2_id}}", "unblock"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contacts - Delete",
+      "item": [
+        {
+          "name": "Delete Contact",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/contacts/{{contact2_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contacts", "{{contact2_id}}"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+}

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket Chat Test</title>
+        <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 50px auto;
+                padding: 20px;
+            }
+            .section {
+                margin: 20px 0;
+                padding: 15px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+            }
+            input, textarea, button {
+                margin: 5px 0;
+                padding: 8px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            button {
+                background: #007bff;
+                color: white;
+                border: none;
+                cursor: pointer;
+            }
+            button:hover {
+                background: #0056b3;
+            }
+            #messages {
+                height: 300px;
+                overflow-y: auto;
+                border: 1px solid #ddd;
+                padding: 10px;
+                background: #f9f9f9;
+            }
+            .message {
+                margin: 5px 0;
+                padding: 5px;
+                background: white;
+                border-radius: 3px;
+            }
+            .status {
+                padding: 10px;
+                margin: 10px 0;
+                border-radius: 5px;
+            }
+            .status.connected {
+                background: #d4edda;
+                color: #155724;
+            }
+            .status.disconnected {
+                background: #f8d7da;
+                color: #721c24;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>WebSocket Chat Test Client</h1>
+        
+        <div class="section">
+            <h3>Connection</h3>
+            <input type="text" id="token" placeholder="JWT Token (from login)" />
+            <button onclick="connect()">Connect</button>
+            <button onclick="disconnect()">Disconnect</button>
+            <div id="status" class="status disconnected">Disconnected</div>
+        </div>
+
+        <div class="section">
+            <h3>Subscribe to Chat</h3>
+            <input type="number" id="chatId" placeholder="Chat ID" />
+            <button onclick="subscribeToChat()">Subscribe</button>
+        </div>
+
+        <div class="section">
+            <h3>Send Message</h3>
+            <input type="number" id="sendChatId" placeholder="Chat ID" />
+            <textarea id="messageContent" rows="3" placeholder="Message content"></textarea>
+            <button onclick="sendMessage()">Send Message</button>
+        </div>
+
+        <div class="section">
+            <h3>Typing Indicator</h3>
+            <input type="number" id="typingChatId" placeholder="Chat ID" />
+            <button onclick="startTyping()">Start Typing</button>
+            <button onclick="stopTyping()">Stop Typing</button>
+        </div>
+
+        <div class="section">
+            <h3>Messages</h3>
+            <div id="messages"></div>
+        </div>
+
+        <script>
+            let stompClient = null;
+            let subscriptions = {};
+
+            function connect() {
+                const token = document.getElementById('token').value;
+                if (!token) {
+                    alert('Please enter JWT token');
+                    return;
+                }
+
+                const socket = new SockJS('http://localhost:8080/ws');
+                stompClient = Stomp.over(socket);
+
+                const headers = {
+                    'Authorization': 'Bearer ' + token
+                };
+
+                stompClient.connect(headers, function(frame) {
+                    console.log('Connected: ' + frame);
+                    document.getElementById('status').className = 'status connected';
+                    document.getElementById('status').innerText = 'Connected';
+                    addMessage('System', 'Connected to WebSocket server');
+                }, function(error) {
+                    console.error('Connection error:', error);
+                    document.getElementById('status').className = 'status disconnected';
+                    document.getElementById('status').innerText = 'Disconnected - Error: ' + error;
+                    addMessage('System', 'Connection error: ' + error);
+                });
+            }
+
+            function disconnect() {
+                if (stompClient !== null) {
+                    stompClient.disconnect();
+                    document.getElementById('status').className = 'status disconnected';
+                    document.getElementById('status').innerText = 'Disconnected';
+                    addMessage('System', 'Disconnected from WebSocket server');
+                }
+            }
+
+            function subscribeToChat() {
+                const chatId = document.getElementById('chatId').value;
+                if (!chatId) {
+                    alert('Please enter chat ID');
+                    return;
+                }
+
+                if (subscriptions[chatId]) {
+                    alert('Already subscribed to chat ' + chatId);
+                    return;
+                }
+
+                // Subscribe to new messages
+                subscriptions[chatId] = stompClient.subscribe('/topic/chat/' + chatId, function(message) {
+                    const msg = JSON.parse(message.body);
+                    addMessage('Chat ' + chatId, msg.senderUsername + ': ' + msg.content);
+                });
+
+                // Subscribe to typing indicators
+                stompClient.subscribe('/topic/chat/' + chatId + '/typing', function(message) {
+                    const msg = JSON.parse(message.body);
+                    if (msg.isTyping) {
+                        addMessage('Chat ' + chatId, msg.username + ' is typing...');
+                    }
+                });
+
+                // Subscribe to reactions
+                stompClient.subscribe('/topic/chat/' + chatId + '/reaction', function(message) {
+                    const msg = JSON.parse(message.body);
+                    addMessage('Chat ' + chatId, 'New reaction on message: ' + JSON.stringify(msg.reactions));
+                });
+
+                // Subscribe to edits
+                stompClient.subscribe('/topic/chat/' + chatId + '/edit', function(message) {
+                    const msg = JSON.parse(message.body);
+                    addMessage('Chat ' + chatId, 'Message edited: ' + msg.content);
+                });
+
+                // Subscribe to deletes
+                stompClient.subscribe('/topic/chat/' + chatId + '/delete', function(message) {
+                    const messageId = message.body;
+                    addMessage('Chat ' + chatId, 'Message deleted: ' + messageId);
+                });
+
+                addMessage('System', 'Subscribed to chat ' + chatId);
+            }
+
+            function sendMessage() {
+                const chatId = document.getElementById('sendChatId').value;
+                const content = document.getElementById('messageContent').value;
+
+                if (!chatId || !content) {
+                    alert('Please enter chat ID and message content');
+                    return;
+                }
+
+                const message = {
+                    chatId: parseInt(chatId),
+                    content: content,
+                    messageType: 'TEXT'
+                };
+
+                stompClient.send('/app/chat.send', {}, JSON.stringify(message));
+                document.getElementById('messageContent').value = '';
+                addMessage('You', 'Sent: ' + content);
+            }
+
+            function startTyping() {
+                const chatId = document.getElementById('typingChatId').value;
+                if (!chatId) {
+                    alert('Please enter chat ID');
+                    return;
+                }
+
+                const indicator = {
+                    chatId: parseInt(chatId),
+                    isTyping: true
+                };
+
+                stompClient.send('/app/chat.typing', {}, JSON.stringify(indicator));
+                addMessage('System', 'Sent typing indicator (started)');
+            }
+
+            function stopTyping() {
+                const chatId = document.getElementById('typingChatId').value;
+                if (!chatId) {
+                    alert('Please enter chat ID');
+                    return;
+                }
+
+                const indicator = {
+                    chatId: parseInt(chatId),
+                    isTyping: false
+                };
+
+                stompClient.send('/app/chat.typing', {}, JSON.stringify(indicator));
+                addMessage('System', 'Sent typing indicator (stopped)');
+            }
+
+            function addMessage(sender, message) {
+                const messagesDiv = document.getElementById('messages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                messageDiv.innerHTML = '<strong>' + sender + ':</strong> ' + message;
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        </script>
+    </body>
+</html>

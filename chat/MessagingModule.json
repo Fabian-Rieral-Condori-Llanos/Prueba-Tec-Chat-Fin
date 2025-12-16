@@ -1,0 +1,804 @@
+{
+  "info": {
+    "name": "Messaging App - Chat Module",
+    "description": "Collection for testing the Chat and Messaging module",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Setup - Prepare Users",
+      "item": [
+        {
+          "name": "Login User 1 (Alice)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"user1_accessToken\", jsonData.accessToken);",
+                  "pm.environment.set(\"user1_id\", jsonData.userId);",
+                  "pm.environment.set(\"user1_username\", jsonData.username);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"alice\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login User 2 (Bob)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"user2_accessToken\", jsonData.accessToken);",
+                  "pm.environment.set(\"user2_id\", jsonData.userId);",
+                  "pm.environment.set(\"user2_username\", jsonData.username);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"bob\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login User 3 (Charlie)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"user3_accessToken\", jsonData.accessToken);",
+                  "pm.environment.set(\"user3_id\", jsonData.userId);",
+                  "pm.environment.set(\"user3_username\", jsonData.username);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"charlie\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chats - Create",
+      "item": [
+        {
+          "name": "Create Private Chat (Alice with Bob)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"private_chat_id\", jsonData.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatType\": \"PRIVATE\",\n  \"participantIds\": [{{user2_id}}]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats"]
+            }
+          }
+        },
+        {
+          "name": "Create Group Chat (Alice with Bob and Charlie)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"group_chat_id\", jsonData.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatType\": \"GROUP\",\n  \"name\": \"Friends Group\",\n  \"description\": \"A group for friends\",\n  \"participantIds\": [{{user2_id}}, {{user3_id}}]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats"]
+            }
+          }
+        },
+        {
+          "name": "Try Create Private Chat Without Participants (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatType\": \"PRIVATE\",\n  \"participantIds\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats"]
+            }
+          }
+        },
+        {
+          "name": "Try Create Group Chat Without Name (Should Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatType\": \"GROUP\",\n  \"participantIds\": [{{user2_id}}]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chats - Get",
+      "item": [
+        {
+          "name": "Get All Chats (Alice)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats"]
+            }
+          }
+        },
+        {
+          "name": "Get Specific Chat",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chats/{{private_chat_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats", "{{private_chat_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Private Chats Only",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chats/private",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats", "private"]
+            }
+          }
+        },
+        {
+          "name": "Get Group Chats Only",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chats/group",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats", "group"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chats - Manage Group",
+      "item": [
+        {
+          "name": "Update Group Info",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatType\": \"GROUP\",\n  \"name\": \"Friends Group - Updated\",\n  \"description\": \"Updated description\",\n  \"participantIds\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chats/{{group_chat_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats", "{{group_chat_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Add Participants to Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"participantIds\": [{{user3_id}}]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chats/{{group_chat_id}}/participants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats", "{{group_chat_id}}", "participants"]
+            }
+          }
+        },
+        {
+          "name": "Promote Participant to Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chats/{{group_chat_id}}/participants/{{user2_id}}/promote",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats", "{{group_chat_id}}", "participants", "{{user2_id}}", "promote"]
+            }
+          }
+        },
+        {
+          "name": "Remove Participant from Group",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chats/{{group_chat_id}}/participants/{{user3_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats", "{{group_chat_id}}", "participants", "{{user3_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Leave Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user2_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chats/{{group_chat_id}}/leave",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats", "{{group_chat_id}}", "leave"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages - Send",
+      "item": [
+        {
+          "name": "Send Text Message (Alice to Bob)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"message1_id\", jsonData.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatId\": {{private_chat_id}},\n  \"content\": \"Hello Bob! How are you?\",\n  \"messageType\": \"TEXT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Send Message to Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"message2_id\", jsonData.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatId\": {{group_chat_id}},\n  \"content\": \"Hello everyone in the group!\",\n  \"messageType\": \"TEXT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Send Message with File Metadata",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatId\": {{private_chat_id}},\n  \"content\": \"Check out this image!\",\n  \"messageType\": \"IMAGE\",\n  \"metadata\": {\n    \"fileName\": \"vacation-photo.jpg\",\n    \"fileSize\": 2048000,\n    \"mimeType\": \"image/jpeg\",\n    \"thumbnailUrl\": \"https://example.com/thumb.jpg\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Send Reply Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user2_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatId\": {{private_chat_id}},\n  \"content\": \"I'm doing great! Thanks for asking!\",\n  \"messageType\": \"TEXT\",\n  \"replyTo\": \"{{message1_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages - Get",
+      "item": [
+        {
+          "name": "Get Chat Messages (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/chat/{{private_chat_id}}?page=0&size=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "chat", "{{private_chat_id}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Specific Message",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/{{message1_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "{{message1_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Search Messages in Chat",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/chat/{{private_chat_id}}/search?q=hello",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "chat", "{{private_chat_id}}", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "hello"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages - Update",
+      "item": [
+        {
+          "name": "Edit Message",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello Bob! How are you doing? (Edited)\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/{{message1_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "{{message1_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Mark Messages as Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user2_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatId\": {{private_chat_id}},\n  \"messageIds\": [\"{{message1_id}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "read"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages - Reactions",
+      "item": [
+        {
+          "name": "Add Reaction to Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user2_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emoji\": \"👍\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/{{message1_id}}/reactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "{{message1_id}}", "reactions"]
+            }
+          }
+        },
+        {
+          "name": "Add Another Reaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emoji\": \"❤️\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/{{message1_id}}/reactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "{{message1_id}}", "reactions"]
+            }
+          }
+        },
+        {
+          "name": "Remove Reaction from Message",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user2_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/{{message1_id}}/reactions?emoji=👍",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "{{message1_id}}", "reactions"],
+              "query": [
+                {
+                  "key": "emoji",
+                  "value": "👍"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages - Delete",
+      "item": [
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/{{message1_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "{{message1_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chats - Delete",
+      "item": [
+        {
+          "name": "Delete Chat",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user1_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chats/{{group_chat_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chats", "{{group_chat_id}}"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+}
