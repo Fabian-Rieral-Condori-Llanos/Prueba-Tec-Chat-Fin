@@ -1,0 +1,164 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EKS Cluster for Chat App'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: chat-app-production
+
+  KubernetesVersion:
+    Type: String
+    Default: '1.28'
+    Description: Kubernetes version
+
+  NodeInstanceType:
+    Type: String
+    Default: t3.medium
+    Description: EC2 instance type for nodes
+
+  NodeGroupMinSize:
+    Type: Number
+    Default: 2
+    Description: Minimum number of nodes
+
+  NodeGroupMaxSize:
+    Type: Number
+    Default: 10
+    Description: Maximum number of nodes
+
+  NodeGroupDesiredSize:
+    Type: Number
+    Default: 3
+    Description: Desired number of nodes
+
+Resources:
+  # EKS Cluster IAM Role
+  EKSClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSVPCResourceController
+
+  # EKS Cluster Security Group
+  EKSClusterSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for EKS cluster
+      VpcId:
+        Fn::ImportValue: !Sub ${EnvironmentName}-VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-EKS-Cluster-SG
+
+  # EKS Cluster
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref EnvironmentName
+      Version: !Ref KubernetesVersion
+      RoleArn: !GetAtt EKSClusterRole.Arn
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref EKSClusterSecurityGroup
+        SubnetIds:
+          - Fn::ImportValue: !Sub ${EnvironmentName}-PrivateSubnet1
+          - Fn::ImportValue: !Sub ${EnvironmentName}-PrivateSubnet2
+          - Fn::ImportValue: !Sub ${EnvironmentName}-PublicSubnet1
+          - Fn::ImportValue: !Sub ${EnvironmentName}-PublicSubnet2
+        EndpointPublicAccess: true
+        EndpointPrivateAccess: true
+      Logging:
+        ClusterLogging:
+          EnabledTypes:
+            - Type: api
+            - Type: audit
+            - Type: authenticator
+            - Type: controllerManager
+            - Type: scheduler
+
+  # Node Group IAM Role
+  NodeGroupRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  # EKS Node Group
+  NodeGroup:
+    Type: AWS::EKS::Nodegroup
+    DependsOn: EKSCluster
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: !Sub ${EnvironmentName}-node-group
+      NodeRole: !GetAtt NodeGroupRole.Arn
+      Subnets:
+        - Fn::ImportValue: !Sub ${EnvironmentName}-PrivateSubnet1
+        - Fn::ImportValue: !Sub ${EnvironmentName}-PrivateSubnet2
+      ScalingConfig:
+        MinSize: !Ref NodeGroupMinSize
+        MaxSize: !Ref NodeGroupMaxSize
+        DesiredSize: !Ref NodeGroupDesiredSize
+      InstanceTypes:
+        - !Ref NodeInstanceType
+      AmiType: AL2_x86_64
+      DiskSize: 50
+      Tags:
+        Name: !Sub ${EnvironmentName}-node
+        Environment: production
+
+  # OIDC Provider for IRSA (IAM Roles for Service Accounts)
+  EKSOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: !GetAtt EKSCluster.OpenIdConnectIssuerUrl
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 9e99a48a9960b14926bb7f3b02e22da2b0ab7280
+
+Outputs:
+  ClusterName:
+    Description: EKS Cluster Name
+    Value: !Ref EKSCluster
+    Export:
+      Name: !Sub ${EnvironmentName}-ClusterName
+
+  ClusterEndpoint:
+    Description: EKS Cluster Endpoint
+    Value: !GetAtt EKSCluster.Endpoint
+    Export:
+      Name: !Sub ${EnvironmentName}-ClusterEndpoint
+
+  ClusterArn:
+    Description: EKS Cluster ARN
+    Value: !GetAtt EKSCluster.Arn
+    Export:
+      Name: !Sub ${EnvironmentName}-ClusterArn
+
+  NodeGroupArn:
+    Description: Node Group ARN
+    Value: !GetAtt NodeGroup.Arn
+
+  OIDCProviderArn:
+    Description: OIDC Provider ARN
+    Value: !GetAtt EKSOIDCProvider.Arn
+    Export:
+      Name: !Sub ${EnvironmentName}-OIDCProviderArn

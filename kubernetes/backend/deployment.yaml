@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: chat-app
+  labels:
+    app: backend
+spec:
+  replicas: 2  # Inicialmente 2 réplicas
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: <TU_ECR_REPOSITORY>/chat-backend:latest  # Cambiar por el repositorio ECR
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        # ConfigMap
+        - name: SERVER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: chat-config
+              key: SERVER_PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: chat-config
+              key: LOG_LEVEL
+        - name: SHOW_SQL
+          valueFrom:
+            configMapKeyRef:
+              name: chat-config
+              key: SHOW_SQL
+        - name: JWT_EXPIRATION
+          valueFrom:
+            configMapKeyRef:
+              name: chat-config
+              key: JWT_EXPIRATION
+        - name: JWT_REFRESH_EXPIRATION
+          valueFrom:
+            configMapKeyRef:
+              name: chat-config
+              key: JWT_REFRESH_EXPIRATION
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: chat-config
+              key: DATABASE_URL
+        - name: MONGODB_URI
+          valueFrom:
+            configMapKeyRef:
+              name: chat-config
+              key: MONGODB_URI
+        
+        # Secrets
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: chat-secrets
+              key: POSTGRES_USER
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: chat-secrets
+              key: POSTGRES_PASSWORD
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: chat-secrets
+              key: JWT_SECRET
+        
+        # Java Options
+        - name: JAVA_OPTS
+          value: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+        
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3

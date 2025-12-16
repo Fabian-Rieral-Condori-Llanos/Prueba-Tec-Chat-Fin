@@ -1,0 +1,125 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'RDS PostgreSQL for Chat App'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: chat-app-production
+
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    Description: RDS instance type
+    AllowedValues:
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+      - db.r5.large
+      - db.r5.xlarge
+
+  DBName:
+    Type: String
+    Default: chatdb
+    Description: Database name
+
+  DBUsername:
+    Type: String
+    Default: chatuser
+    Description: Database master username
+    NoEcho: true
+
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Description: Database master password (min 8 characters)
+    MinLength: 8
+
+  AllocatedStorage:
+    Type: Number
+    Default: 20
+    Description: Allocated storage in GB
+
+  BackupRetentionPeriod:
+    Type: Number
+    Default: 7
+    Description: Backup retention period in days
+
+Resources:
+  # DB Subnet Group
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS
+      SubnetIds:
+        - Fn::ImportValue: !Sub ${EnvironmentName}-PrivateSubnet1
+        - Fn::ImportValue: !Sub ${EnvironmentName}-PrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-db-subnet-group
+
+  # Security Group for RDS
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS PostgreSQL
+      VpcId:
+        Fn::ImportValue: !Sub ${EnvironmentName}-VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId:
+            Fn::ImportValue: !Sub ${EnvironmentName}-EKS-NodeGroup-SG
+          Description: Allow PostgreSQL from EKS nodes
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-rds-sg
+
+  # RDS Instance
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub ${EnvironmentName}-postgres
+      Engine: postgres
+      EngineVersion: '15.4'
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref AllocatedStorage
+      StorageType: gp3
+      StorageEncrypted: true
+      DBName: !Ref DBName
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+      BackupRetentionPeriod: !Ref BackupRetentionPeriod
+      PreferredBackupWindow: '03:00-04:00'
+      PreferredMaintenanceWindow: 'sun:04:00-sun:05:00'
+      MultiAZ: true
+      PubliclyAccessible: false
+      EnableCloudwatchLogsExports:
+        - postgresql
+      DeletionProtection: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-postgres
+
+Outputs:
+  DBEndpoint:
+    Description: RDS Endpoint
+    Value: !GetAtt DBInstance.Endpoint.Address
+    Export:
+      Name: !Sub ${EnvironmentName}-DB-Endpoint
+
+  DBPort:
+    Description: RDS Port
+    Value: !GetAtt DBInstance.Endpoint.Port
+    Export:
+      Name: !Sub ${EnvironmentName}-DB-Port
+
+  DBName:
+    Description: Database Name
+    Value: !Ref DBName
+    Export:
+      Name: !Sub ${EnvironmentName}-DB-Name

@@ -1,0 +1,163 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Security Groups for Chat App'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: chat-app-production
+
+Resources:
+  # ALB Security Group
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Application Load Balancer
+      VpcId:
+        Fn::ImportValue: !Sub ${EnvironmentName}-VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: Allow HTTP from anywhere
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: Allow HTTPS from anywhere
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-alb-sg
+
+  # EKS Node Security Group
+  EKSNodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for EKS worker nodes
+      VpcId:
+        Fn::ImportValue: !Sub ${EnvironmentName}-VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 1025
+          ToPort: 65535
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+          Description: Allow traffic from ALB
+        - IpProtocol: -1
+          SourceSecurityGroupId: !Ref EKSClusterSecurityGroup
+          Description: Allow all traffic from EKS control plane
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-eks-node-sg
+        - Key: !Sub kubernetes.io/cluster/${EnvironmentName}
+          Value: owned
+
+  # EKS Node Self-Ingress Rule
+  EKSNodeSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allow nodes to communicate with each other
+      GroupId: !Ref EKSNodeSecurityGroup
+      SourceSecurityGroupId: !Ref EKSNodeSecurityGroup
+      IpProtocol: -1
+
+  # EKS Cluster Security Group
+  EKSClusterSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for EKS cluster control plane
+      VpcId:
+        Fn::ImportValue: !Sub ${EnvironmentName}-VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref EKSNodeSecurityGroup
+          Description: Allow HTTPS from worker nodes
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-eks-cluster-sg
+
+  # RDS Security Group
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS PostgreSQL
+      VpcId:
+        Fn::ImportValue: !Sub ${EnvironmentName}-VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref EKSNodeSecurityGroup
+          Description: Allow PostgreSQL from EKS nodes
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-rds-sg
+
+  # DocumentDB/MongoDB Security Group
+  MongoDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for MongoDB/DocumentDB
+      VpcId:
+        Fn::ImportValue: !Sub ${EnvironmentName}-VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 27017
+          ToPort: 27017
+          SourceSecurityGroupId: !Ref EKSNodeSecurityGroup
+          Description: Allow MongoDB from EKS nodes
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-mongodb-sg
+
+Outputs:
+  ALBSecurityGroup:
+    Description: ALB Security Group ID
+    Value: !Ref ALBSecurityGroup
+    Export:
+      Name: !Sub ${EnvironmentName}-ALB-SG
+
+  EKSNodeSecurityGroup:
+    Description: EKS Node Security Group ID
+    Value: !Ref EKSNodeSecurityGroup
+    Export:
+      Name: !Sub ${EnvironmentName}-EKS-NodeGroup-SG
+
+  EKSClusterSecurityGroup:
+    Description: EKS Cluster Security Group ID
+    Value: !Ref EKSClusterSecurityGroup
+    Export:
+      Name: !Sub ${EnvironmentName}-EKS-Cluster-SG
+
+  RDSSecurityGroup:
+    Description: RDS Security Group ID
+    Value: !Ref RDSSecurityGroup
+    Export:
+      Name: !Sub ${EnvironmentName}-RDS-SG
+
+  MongoDBSecurityGroup:
+    Description: MongoDB Security Group ID
+    Value: !Ref MongoDBSecurityGroup
+    Export:
+      Name: !Sub ${EnvironmentName}-MongoDB-SG
